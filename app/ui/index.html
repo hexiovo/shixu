@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>食序 · 用餐记录</title>
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="/app.css">
+  <script src="/shared.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到记录</a>
+  <header class="topbar">
+    <a class="wordmark" href="/" aria-label="食序首页">
+      <img src="/shixu-icon-64.png" alt="" width="28" height="28">
+      食序
+    </a>
+    <a class="scope-label" href="/">返回工作台</a>
+    <button class="button button-primary top-action" id="new-meal" type="button">补记一餐</button>
+  </header>
+
+  <main class="page" id="main">
+    <section class="intro" aria-labelledby="page-title">
+      <h1 id="page-title">用餐记录</h1>
+      <p>按日期、餐次和方式查找，在本机补记或更正。</p>
+    </section>
+
+
+    <section class="filter-panel" aria-label="筛选历史记录">
+      <form id="filter-form" class="filter-form">
+        <label>
+          <span>开始日期</span>
+          <input id="date-from" name="date_from" type="date">
+        </label>
+        <label>
+          <span>结束日期</span>
+          <input id="date-to" name="date_to" type="date">
+        </label>
+        <label>
+          <span>餐次</span>
+          <select id="filter-meal-type" name="meal_type">
+            <option value="">全部餐次</option>
+            <option value="breakfast">早餐</option>
+            <option value="lunch">午餐</option>
+            <option value="dinner">晚餐</option>
+            <option value="snack">加餐</option>
+            <option value="other">其他</option>
+          </select>
+        </label>
+        <label>
+          <span>方式</span>
+          <select id="filter-mode" name="mode">
+            <option value="">全部方式</option>
+            <option value="eat_out">外食</option>
+            <option value="delivery">外卖</option>
+            <option value="home_cooking">在家做饭</option>
+          </select>
+        </label>
+        <div class="filter-actions">
+          <button class="button button-primary" type="submit">筛选</button>
+          <button class="button button-quiet" id="clear-filters" type="button">清除</button>
+        </div>
+      </form>
+    </section>
+
+    <p class="feedback" id="page-feedback" role="status" aria-live="polite"></p>
+
+    <section class="editor-panel" id="editor-panel" aria-labelledby="editor-title" hidden>
+      <div class="section-heading">
+        <div>
+          <h2 id="editor-title">补记一餐</h2>
+          <p class="section-note">金额留空表示未知；输入 0 元表示已确认无需支付。</p>
+        </div>
+        <button class="button button-quiet" id="close-editor" type="button">关闭</button>
+      </div>
+      <form id="meal-form">
+        <input id="meal-id" type="hidden">
+        <input id="meal-version" type="hidden">
+        <div class="field-grid">
+          <label>
+            <span>日期 <span class="required">必填</span></span>
+            <input id="meal-date" name="date" type="date" required>
+          </label>
+          <label>
+            <span>餐次 <span class="required">必填</span></span>
+            <select id="meal-type" name="meal_type" required>
+              <option value="" disabled selected>选择餐次</option>
+              <option value="breakfast">早餐</option>
+              <option value="lunch">午餐</option>
+              <option value="dinner">晚餐</option>
+              <option value="snack">加餐</option>
+              <option value="other">其他</option>
+            </select>
+          </label>
+          <label>
+            <span>方式 <span class="required">必填</span></span>
+            <select id="meal-mode" name="mode" required>
+              <option value="" disabled selected>选择方式</option>
+              <option value="eat_out">外食</option>
+              <option value="delivery">外卖</option>
+              <option value="home_cooking">在家做饭</option>
+            </select>
+          </label>
+          <label>
+            <span>用餐人数</span>
+            <input id="people-count" name="people_count" type="number" min="1" step="1" inputmode="numeric">
+          </label>
+          <label>
+            <span>地点</span>
+            <input id="meal-location" name="location" type="text" autocomplete="off">
+          </label>
+          <label class="amount-field">
+            <span>整餐金额</span>
+            <span class="money-input">
+              <input id="meal-amount" name="meal_amount" type="text" inputmode="decimal" autocomplete="off" aria-describedby="amount-help">
+              <span>元</span>
+            </span>
+            <small id="amount-help">0.00 表示确认 0 元；新建时留空会按整餐付款明细推导。</small>
+            <span class="check-option"><input id="meal-amount-unknown" type="checkbox"><span>明确未知，不按付款明细推导</span></span>
+          </label>
+        </div>
+
+        <section class="form-section" aria-labelledby="items-title">
+          <div class="section-heading compact">
+            <div>
+              <h3 id="items-title">菜品</h3>
+              <p class="section-note">逐项填写，未提供的数量或单位可以留空。</p>
+            </div>
+            <button class="button button-quiet" id="add-item" type="button">添加菜品</button>
+          </div>
+          <div class="repeat-list" id="item-rows"></div>
+        </section>
+
+        <section class="form-section" id="payments-section" aria-labelledby="payments-title">
+          <div class="section-heading compact">
+            <div>
+              <h3 id="payments-title">付款明细</h3>
+              <p class="section-note">整餐总额与各笔付款分开保存；附加支出不会并入整餐金额。</p>
+            </div>
+            <button class="button button-quiet" id="add-payment" type="button">添加一笔</button>
+          </div>
+          <div class="repeat-list" id="payment-rows"></div>
+        </section>
+
+        <section class="form-section" aria-labelledby="timing-title">
+          <div class="section-heading compact">
+            <div>
+              <h3 id="timing-title">时间</h3>
+              <p class="section-note">只记录已知时间；耗时可填单值或范围。</p>
+            </div>
+          </div>
+          <div class="field-grid timing-grid">
+            <label><span>开始时间</span><input id="start-at" type="datetime-local"></label>
+            <label><span>可开饭时间</span><input id="ready-at" type="datetime-local"></label>
+            <label><span>用餐结束</span><input id="ended-at" type="datetime-local"></label>
+            <label><span>返回时间</span><input id="return-at" type="datetime-local"></label>
+            <label><span>耗时下限（分钟）</span><input id="duration-min" type="number" min="0" step="1" inputmode="numeric"></label>
+            <label><span>耗时上限（分钟）</span><input id="duration-max" type="number" min="0" step="1" inputmode="numeric"></label>
+          </div>
+        </section>
+
+        <label class="note-field">
+          <span>备注</span>
+          <textarea id="meal-note" rows="3"></textarea>
+        </label>
+        <p class="form-error" id="meal-error" role="alert" hidden></p>
+        <div class="form-actions">
+          <button class="button button-primary" id="save-meal" type="submit">保存记录</button>
+          <button class="button button-quiet" id="cancel-meal" type="button">取消</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="editor-panel" id="payment-editor-panel" aria-labelledby="payment-editor-title" hidden>
+      <div class="section-heading">
+        <div>
+          <h2 id="payment-editor-title">更改付款明细</h2>
+          <p class="section-note">这次更改只影响所选的这一笔。</p>
+        </div>
+        <button class="button button-quiet" id="close-payment-editor" type="button">关闭</button>
+      </div>
+      <form id="payment-form">
+        <input id="payment-meal-id" type="hidden">
+        <input id="payment-id" type="hidden">
+        <input id="payment-version" type="hidden">
+        <div class="field-grid payment-edit-grid">
+          <label><span>类型</span>
+            <select id="payment-kind">
+              <option value="meal">餐费</option>
+              <option value="delivery_fee">配送费</option>
+              <option value="packaging_fee">包装费</option>
+              <option value="discount">优惠</option>
+              <option value="milk_tea">奶茶</option>
+              <option value="purchase">采购</option>
+              <option value="other">其他</option>
+            </select>
+          </label>
+          <label><span>归属</span>
+            <select id="payment-scope">
+              <option value="meal">整餐</option>
+              <option value="extra">附加</option>
+            </select>
+          </label>
+          <label class="amount-field">
+            <span>金额</span>
+            <span class="money-input"><input id="payment-amount" type="text" inputmode="decimal" aria-describedby="payment-amount-help"><span>元</span></span>
+            <small id="payment-amount-help">留空表示未知；0.00 表示确认 0 元。</small>
+          </label>
+          <label><span>估算下限</span><span class="money-input"><input id="payment-amount-min" type="text" inputmode="decimal"><span>元</span></span></label>
+          <label><span>估算上限</span><span class="money-input"><input id="payment-amount-max" type="text" inputmode="decimal"><span>元</span></span></label>
+          <label><span>金额来源</span>
+            <select id="payment-source">
+              <option value="">根据金额自动判断</option>
+              <option value="actual">实际</option>
+              <option value="estimate">估算</option>
+              <option value="unknown">未知</option>
+            </select>
+          </label>
+          <label><span>备注</span><input id="payment-note" type="text"></label>
+        </div>
+        <p class="form-error" id="payment-error" role="alert" hidden></p>
+        <div class="form-actions">
+          <button class="button button-primary" id="save-payment" type="submit">保存这笔更改</button>
+          <button class="button button-quiet" id="cancel-payment" type="button">取消</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="history-section" aria-labelledby="history-title">
+      <div class="section-heading history-heading">
+        <div>
+          <h2 id="history-title">历史记录</h2>
+          <p class="section-note" id="history-count">正在读取记录…</p>
+        </div>
+      </div>
+      <p class="list-message" id="history-message" role="status" aria-live="polite" hidden></p>
+      <div class="record-list" id="record-list"></div>
+      <button class="button button-quiet load-more" id="load-more" type="button" hidden>加载更多</button>
+    </section>
+  </main>
+  <footer class="footer"><span>食序 · 本机餐次记录</span><span>记录保存在本机数据库</span></footer>
+
+  <template id="item-row-template">
+    <fieldset class="repeat-row item-row">
+      <legend class="visually-hidden">菜品</legend>
+      <label class="item-name"><span>菜品名称 <span class="required">必填</span></span><input data-field="name" type="text" required></label>
+      <label><span>数量</span><input data-field="quantity" type="text" inputmode="decimal"></label>
+      <label><span>单位</span><input data-field="unit" type="text"></label>
+      <label class="item-notes"><span>菜品备注</span><input data-field="notes" type="text"></label>
+      <button class="button button-quiet remove-row" type="button">移除</button>
+    </fieldset>
+  </template>
+
+  <template id="payment-row-template">
+    <fieldset class="repeat-row payment-row">
+      <legend class="visually-hidden">付款明细</legend>
+      <label><span>类型</span>
+        <select data-field="kind">
+          <option value="meal">餐费</option>
+          <option value="delivery_fee">配送费</option>
+          <option value="packaging_fee">包装费</option>
+          <option value="discount">优惠</option>
+          <option value="milk_tea">奶茶</option>
+          <option value="purchase">采购</option>
+          <option value="other">其他</option>
+        </select>
+      </label>
+      <label><span>归属</span>
+        <select data-field="scope">
+          <option value="meal">整餐</option>
+          <option value="extra">附加</option>
+        </select>
+      </label>
+      <label><span>金额</span>
+        <span class="money-input"><input data-field="amount" type="text" inputmode="decimal" aria-label="付款明细金额，留空表示未知"><span>元</span></span>
+      </label>
+      <label><span>估算下限</span><span class="money-input"><input data-field="amount-min" type="text" inputmode="decimal"><span>元</span></span></label>
+      <label><span>估算上限</span><span class="money-input"><input data-field="amount-max" type="text" inputmode="decimal"><span>元</span></span></label>
+      <label class="payment-source"><span>金额来源</span>
+        <select data-field="source">
+          <option value="">自动判断</option>
+          <option value="actual">实际</option>
+          <option value="estimate">估算</option>
+          <option value="unknown">未知</option>
+        </select>
+      </label>
+      <input data-field="payment-id" type="hidden">
+      <button class="button button-quiet remove-row" type="button">移除</button>
+    </fieldset>
+  </template>
+
+  <template id="record-template">
+    <article class="record">
+      <div class="record-main">
+        <div class="record-heading">
+          <div>
+            <p class="record-kicker"></p>
+            <h3 class="record-title"></h3>
+          </div>
+          <button class="button button-quiet edit-record" type="button">更正记录</button>
+        </div>
+        <p class="record-items"></p>
+        <dl class="record-facts">
+          <div><dt>整餐金额</dt><dd class="record-total"></dd></div>
+          <div><dt>耗时</dt><dd class="record-duration"></dd></div>
+          <div><dt>地点</dt><dd class="record-location"></dd></div>
+        </dl>
+        <p class="record-note"></p>
+        <div class="record-payments"></div>
+      </div>
+    </article>
+  </template>
+</body>
+</html>

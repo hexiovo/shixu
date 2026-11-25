@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>食序 · 今日工作台</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/today.css">
+  <script src="/shared.js" defer></script>
+  <script src="/today.js" defer></script>
+  <script src="/local-tools.js" defer></script>
+</head>
+<body class="workbench">
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <aside class="side">
+    <a class="wordmark" href="#today"><img src="/shixu-icon-64.png" alt="" width="32" height="32">食序</a>
+    <nav aria-label="食序页面">
+      <a href="#today" data-view="today" aria-current="page">今天</a>
+      <a href="/records">记录</a>
+      <a href="#recipes" data-view="recipes">菜谱</a>
+      <a href="#kitchen" data-view="kitchen">厨房</a>
+      <a href="#favorites" data-view="favorites">收藏与待尝</a>
+      <a href="#reports" data-view="reports">报表</a>
+      <a href="#settings" data-view="settings">设置</a>
+    </nav>
+  </aside>
+  <div class="work-area">
+    <header class="workbar">
+      <time id="today-date"></time>
+      <a class="button button-primary" href="/records#new">补记一餐</a>
+    </header>
+    <main id="main">
+      <p id="page-status" class="work-status" role="status" hidden></p>
+      <section data-panel="today">
+        <header class="view-heading">
+          <div><h1>今天吃什么</h1><p id="recommend-summary" class="muted" aria-live="polite">正在读取本机候选。</p></div>
+        </header>
+        <div class="today-columns">
+          <section class="sheet compare" aria-labelledby="compare-title">
+            <header class="sheet-heading"><h2 id="compare-title">用餐选项</h2><a href="#favorites">管理候选</a></header>
+            <form id="compare-form">
+              <div class="compare-fields">
+                <label><span>餐次</span><select name="meal_type">
+                  <option value="breakfast">早餐</option><option value="lunch">午餐</option><option value="dinner">晚餐</option>
+                  <option value="snack">加餐</option><option value="other">其他</option>
+                </select></label>
+                <label><span>时间目标</span><select name="time_target">
+                  <option value="meal_start">开饭</option><option value="finished">吃完</option><option value="returned">返回</option>
+                </select></label>
+                <label><span>截止时间</span><input name="deadline" type="time"></label>
+                <label><span>预算（元）</span><input name="budget" type="number" inputmode="decimal" min="0" max="999999" step="0.01"></label>
+                <button class="button button-primary" type="submit">比较</button>
+              </div>
+              <details class="advanced">
+                <summary>地点、人数和其他条件</summary>
+                <div class="tool-form">
+                  <label><span>方式</span><select name="mode"><option value="">三种方式</option><option value="eat_out">外食</option><option value="delivery">外卖</option><option value="home_cooking">做饭</option></select></label>
+                  <label><span>地点</span><input name="location" placeholder="如单位"></label>
+                  <label><span>返回地点</span><input name="return_location" placeholder="默认与起点相同"></label>
+                  <label><span>用餐人数</span><input name="people_count" type="number" min="1" max="100" placeholder="默认 1"></label>
+                  <label><span>场合</span><input name="occasion" placeholder="如周末聚餐"></label>
+                  <label><span>菜价地区</span><input name="price_region"></label>
+                  <label><span>预算口径</span><select name="budget_basis"><option value="payment">本次付款</option><option value="consumption">食用成本</option></select></label>
+                  <label><span>厨具（每项用逗号隔开）</span><input name="utensils"></label>
+                  <label class="check-line"><input name="stock" type="checkbox" checked>扣除可用厨房库存</label>
+                </div>
+              </details>
+            </form>
+            <div id="offer-list" aria-live="polite"></div>
+            <details id="score-help" class="score-help">
+              <summary>推荐度怎么算</summary>
+              <p>时间 40 分、费用 30 分、喜好 20 分、近期少吃或少跳过 10 分。设了截止或预算时，余量较多的选项得分更高。时间和预算使用区间上限。信息待核实的方案最高 59%，触发限制的方案是 0%。分数用于排序，百分比表示规则评分。</p>
+            </details>
+          </section>
+          <aside class="work-stack" aria-label="今天的提醒与库存">
+            <section class="sheet">
+              <header class="sheet-heading"><h2>下一条提醒</h2><a href="#settings">设置</a></header>
+              <div id="pending-reminders" class="reminder-banner" aria-live="polite" hidden></div>
+              <div id="next-reminder" class="empty">正在读取提醒。</div>
+            </section>
+            <section class="sheet">
+              <header class="sheet-heading"><h2>厨房可用</h2><a href="#kitchen">查看厨房</a></header>
+              <div id="stock-peek" class="rows"></div>
+            </section>
+          </aside>
+        </div>
+        <div class="overview-pair">
+          <section class="sheet">
+            <header class="sheet-heading"><h2>今日记录</h2><a href="/records">查看记录</a></header>
+            <div id="meals-peek" class="rows"></div>
+          </section>
+          <section class="sheet">
+            <header class="sheet-heading"><h2>今日菜单</h2><a href="#kitchen">安排菜单</a></header>
+            <div id="plans-peek" class="rows"></div>
+          </section>
+        </div>
+        <section class="sheet overview-week">
+          <header class="sheet-heading"><h2>本周餐次</h2><a href="#reports">查看报表</a></header>
+          <div id="week-peek"></div>
+        </section>
+      </section>
+
+      <section data-panel="recipes" hidden>
+        <header class="view-heading"><h1>菜谱</h1></header>
+        <div class="tool-columns">
+          <section class="sheet"><header class="sheet-heading"><h2>已保存菜谱</h2></header><div id="recipe-list" class="rows"></div></section>
+          <section class="sheet">
+            <header class="sheet-heading"><h2>导入菜谱</h2></header>
+            <form id="recipe-import" class="tool-form">
+              <label><span>来源类型</span><select name="source_kind"><option value="pasted_text">粘贴文字</option><option value="subtitle">字幕</option></select></label>
+              <label><span>原链接（可选）</span><input name="source_url" type="url"></label>
+              <label class="wide"><span>菜谱内容</span><textarea name="source_text" required placeholder="菜名、份数、食材与做法"></textarea></label>
+              <button class="button button-primary" type="submit">预览</button>
+            </form>
+            <div id="recipe-preview"></div>
+          </section>
+          <section class="sheet" id="provider-area" hidden>
+            <header class="sheet-heading"><h2>查找与生成</h2></header>
+            <form id="recipe-provider-form" class="tool-form">
+              <label><span>来源</span><select name="provider"></select></label>
+              <label><span>关键词或做法要求</span><input name="query" required></label>
+              <button class="button button-quiet" type="submit">取得预览</button>
+            </form>
+            <div id="provider-output" class="rows"></div>
+          </section>
+        </div>
+      </section>
+
+      <section data-panel="kitchen" hidden>
+        <header class="view-heading"><h1>厨房</h1></header>
+        <div class="tool-columns">
+          <section class="sheet">
+            <header class="sheet-heading"><h2>库存</h2></header>
+            <form id="inventory-form" class="tool-form">
+              <label><span>食材</span><input name="ingredient" required></label>
+              <label><span>数量</span><input name="quantity" type="number" min="0.001" step="any" required></label>
+              <label><span>单位</span><input name="unit" required></label>
+              <label><span>位置</span><input name="location"></label>
+              <label><span>本批到期日</span><input name="expires_on" type="date"></label>
+              <label><span>保质天数（保存供下次用）</span><input name="shelf_life_days" type="number" min="0" step="1"></label>
+              <button class="button button-primary" type="submit">入库</button>
+            </form>
+            <p id="inventory-shelf-life" class="section-note" aria-live="polite" hidden></p>
+            <div id="inventory-list" class="rows"></div>
+          </section>
+          <section class="sheet">
+            <header class="sheet-heading"><h2>剩菜</h2></header>
+            <form id="leftover-form" class="tool-form">
+              <label><span>菜名</span><input name="name" required></label>
+              <label><span>份数</span><input name="servings" type="number" min="1" step="1" value="1" required></label>
+              <label><span>制作日期</span><input name="prepared_on" type="date" required></label>
+              <label><span>保留至（留空自动填写）</span><input name="use_by" type="date"></label>
+              <button class="button button-primary" type="submit">记剩菜</button>
+            </form>
+            <div id="leftover-list" class="rows"></div>
+          </section>
+          <section class="sheet">
+            <header class="sheet-heading"><h2>菜单计划</h2></header>
+            <form id="plan-form" class="tool-form">
+              <label><span>日期</span><input name="planned_date" type="date" required></label>
+              <label><span>餐次</span><select name="meal_type"><option value="breakfast">早餐</option><option value="lunch">午餐</option><option value="dinner" selected>晚餐</option><option value="snack">加餐</option><option value="other">其他</option></select></label>
+              <label><span>菜谱</span><select name="recipe_id" required></select></label>
+              <label><span>份数</span><input name="servings" type="number" min="1" value="2" required></label>
+              <button class="button button-primary" type="submit">加入菜单</button>
+            </form>
+            <div id="plan-list" class="rows"></div>
+            <button id="build-shopping" class="button button-quiet" type="button">生成所选计划的购物清单</button>
+          </section>
+          <section class="sheet">
+            <header class="sheet-heading"><h2>购物清单</h2></header>
+            <div id="shopping-list" class="rows"></div>
+          </section>
+        </div>
+      </section>
+
+      <section data-panel="favorites" hidden>
+        <header class="view-heading"><h1>收藏与待尝</h1></header>
+        <div class="tool-columns">
+          <section class="sheet">
+            <header class="sheet-heading"><h2>用餐候选</h2></header>
+            <label class="compact-control"><span>筛选</span><select id="favorites-filter"><option value="">全部</option><option value="liked">收藏</option><option value="want_to_try">待尝</option><option value="temporarily_tired">暂时吃腻</option></select></label>
+            <div id="favorite-list" class="rows"></div>
+          </section>
+          <section class="sheet">
+            <header class="sheet-heading"><h2 id="candidate-title">添加候选</h2></header>
+            <form id="candidate-form" class="tool-form">
+              <label><span>方案名</span><input name="name" required></label>
+              <label><span>方式</span><select name="mode"><option value="eat_out">外食</option><option value="delivery">外卖</option><option value="home_cooking">做饭</option></select></label>
+              <label class="wide"><span>菜品（每行一道）</span><textarea name="dishes" rows="3"></textarea></label>
+              <label><span>整餐预计付款（元）</span><input name="payment" type="number" inputmode="decimal" min="0" step="0.01"></label>
+              <label><span>金额涵盖人数</span><input name="people_count" type="number" min="1" placeholder="默认 1"></label>
+              <label><span>关联已有店铺（可选）</span><input name="store_name"></label>
+              <label><span>分店（可选）</span><input name="store_branch"></label>
+              <div class="wide"><p class="field-caption">填写已知耗时，单位分钟。确认零分钟时填 0。</p><div id="candidate-stages" class="tool-form"></div></div>
+              <button class="button button-primary" type="submit">保存候选</button>
+              <button id="candidate-cancel" class="button button-quiet" type="button" hidden>取消编辑</button>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section data-panel="reports" hidden>
+        <header class="view-heading"><h1>用餐报表</h1></header>
+        <section class="sheet">
+          <form id="report-form" class="tool-form">
+            <label><span>周期</span><select name="period"><option value="week">周报</option><option value="month">月报</option></select></label>
+            <label><span>查询日期</span><input name="anchor" type="date" required></label>
+            <button class="button button-primary" type="submit">查看</button>
+          </form>
+          <div id="report-output" aria-live="polite"></div>
+        </section>
+      </section>
+
+      <section data-panel="settings" hidden>
+        <header class="view-heading"><h1>设置</h1></header>
+    <section class="local-tools" aria-label="本机服务">
+      <details id="reminder-panel">
+        <summary>饭点提醒</summary>
+        <div class="local-tools-body">
+          <form id="reminder-form" class="reminder-form">
+            <label><span>餐次</span><select name="meal_type">
+              <option value="breakfast">早餐</option><option value="lunch" selected>午餐</option>
+              <option value="dinner">晚餐</option><option value="snack">加餐</option><option value="other">其他</option>
+            </select></label>
+            <label><span>时间</span><input name="at" type="time" value="12:00" required></label>
+            <label><span>重复</span><select name="days">
+              <option value="0,1,2,3,4,5,6">每天</option>
+              <option value="0,1,2,3,4">工作日</option><option value="5,6">周末</option>
+            </select></label>
+            <label><span>备注</span><input name="note" type="text" maxlength="120"></label>
+            <button class="button button-primary" type="submit">添加提醒</button>
+          </form>
+          <p id="reminder-message" class="section-note" role="status"></p>
+          <ul id="reminder-rules"></ul>
+          <button id="allow-notifications" class="button button-quiet" type="button">开启浏览器通知</button>
+          <p class="section-note">网页保持打开时可弹出通知。再次打开可查看后台记录的最近一次未处理提醒。</p>
+        </div>
+      </details>
+      <details id="local-log-panel">
+        <summary title="右键可隐藏，或在展开后点击隐藏">本机状态与日志</summary>
+        <div class="local-tools-body">
+          <button id="refresh-local-log" class="button button-quiet" type="button">刷新</button>
+          <button id="hide-local-log" class="button button-quiet" type="button">隐藏</button>
+          <p id="local-log-status" class="section-note" role="status"></p>
+          <pre id="local-log-lines"></pre>
+        </div>
+      </details>
+      <button id="restore-local-log" class="button button-quiet" type="button" hidden>恢复状态与日志</button>
+    </section>
+        <div class="tool-columns">
+          <section class="sheet">
+            <header class="sheet-heading"><h2>店铺场合</h2></header>
+            <form id="store-find" class="tool-form">
+              <label><span>店名</span><input name="name" required></label>
+              <button class="button button-quiet" type="submit">查找</button>
+            </form>
+            <div id="store-results" class="rows"></div>
+            <form id="store-profile" class="tool-form" hidden>
+              <label><span>环境</span><input name="environment"></label>
+              <label><span>适合场合（逗号隔开）</span><input name="occasions"></label>
+              <label><span>备注</span><input name="note"></label>
+              <button class="button button-primary" type="submit">保存场合</button>
+            </form>
+          </section>
+          <section class="sheet">
+            <header class="sheet-heading"><h2>菜价快照</h2></header>
+            <form id="price-form" class="tool-form">
+              <label><span>食材</span><input name="ingredient" required></label>
+              <label><span>整包规格</span><input name="package_quantity" type="number" min="0.001" step="any" required></label>
+              <label><span>单位</span><input name="unit" required></label>
+              <label><span>整包价格（元）</span><input name="price" type="number" inputmode="decimal" min="0" step="0.01" required></label>
+              <label><span>地区</span><input name="region" required></label>
+              <label><span>记录日期</span><input name="recorded_on" type="date" required></label>
+              <label><span>来源</span><input name="source" required></label>
+              <button class="button button-primary" type="submit">保存价格</button>
+            </form>
+            <div id="price-list" class="rows"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
